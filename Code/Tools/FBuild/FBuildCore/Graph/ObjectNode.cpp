@@ -273,7 +273,7 @@ ObjectNode::~ObjectNode()
     // we may be using deoptimized options, but they are always
     // the "normal" args when remote compiling
     const bool useDeoptimization = job->IsLocal() && ShouldUseDeoptimization();
-    const bool stealingRemoteJob = job->IsLocal(); // are we stealing a remote job?
+    const bool stealingRemoteJob = job->GetDistributionState() == Job::DIST_BUILDING_LOCALLY; // are we stealing a remote job?
     const bool isFollowingLightCacheMiss = false;
     return DoBuildWithPreProcessor2( job, useDeoptimization, stealingRemoteJob, racingRemoteJob, isFollowingLightCacheMiss );
 }
@@ -519,7 +519,7 @@ Node::BuildResult ObjectNode::DoBuildWithPreProcessor( Job * job, bool useDeopti
     }
 
     // can't do the work remotely, so do it right now
-    const bool stealingRemoteJob = false; // never queued
+    const bool stealingRemoteJob = true; // never queued
     const bool racingRemoteJob = false;
     const bool isFollowingLightCacheMiss = false;
     const Node::BuildResult result = DoBuildWithPreProcessor2( job, useDeoptimization, stealingRemoteJob, racingRemoteJob, isFollowingLightCacheMiss );
@@ -540,8 +540,8 @@ Node::BuildResult ObjectNode::DoBuildWithPreProcessor2( Job * job, bool useDeopt
     // should never use preprocessor if using CLR
     ASSERT( IsUsingCLR() == false );
 
-    bool usePreProcessedOutput = true;
-    if ( job->IsLocal() )
+    bool usePreProcessedOutput = !stealingRemoteJob;
+    if ( job->IsLocal() && !stealingRemoteJob)
     {
         if ( IsClang() ||
              IsClangCl() ||
